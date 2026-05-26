@@ -25,19 +25,33 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+logs/
 
-# macOS
+# macOS / Windows
 .DS_Store
+Thumbs.db
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
+
+# IDE
+.idea/
+*.swp
+*.swo
 
 example
 
 # generated native folders
 /ios
 /android
+
+# lockfiles (mantidos fora do versionamento neste projeto)
+package-lock.json
+yarn.lock
