@@ -48,10 +48,12 @@ Quatro planos foram elaborados antes da implementação, cada um documentando um
 
 #### Endpoints implementados
 
-| Método | Rota                       | Auth | Descrição                                       |
+Todos os endpoints abaixo já estão implementados. A coluna **JWT** indica se a rota exige token de autenticação (✅ protegida) ou se é pública (❌ aberta).
+
+| Método | Rota                       | JWT  | Descrição                                       |
 |--------|----------------------------|------|-------------------------------------------------|
-| POST   | `/api/auth/register`       | ❌   | Cadastro de usuário                             |
-| POST   | `/api/auth/login`          | ❌   | Login e emissão de JWT                          |
+| POST   | `/api/auth/register`       | ❌   | Cadastro de usuário (rota pública)              |
+| POST   | `/api/auth/login`          | ❌   | Login e emissão de JWT (rota pública)           |
 | GET    | `/api/categories`          | ✅   | Lista categorias fixas + customizadas do user   |
 | POST   | `/api/categories`          | ✅   | Cria categoria customizada                      |
 | GET    | `/api/transactions`        | ✅   | Lista transações (filtros `?month=&year=`)      |
