@@ -32,6 +32,11 @@ export function TransactionModal({ visible, transaction, onClose }: Props) {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
+  const filteredCategories = categories.filter(
+    (c) => c.isIncome === (type === 'income')
+  );
+  const selectedCategory = categories.find((c) => c.displayName === category);
+
   useEffect(() => {
     if (visible) {
       setShowCategoryPicker(false);
@@ -46,10 +51,21 @@ export function TransactionModal({ visible, transaction, onClose }: Props) {
         setDescription('');
         setValue('');
         setType('expense');
-        setCategory(categories[0] ?? '');
+        const firstExpense = categories.find((c) => !c.isIncome);
+        setCategory(firstExpense?.displayName ?? '');
       }
     }
   }, [visible, transaction]);
+
+  // Ao trocar o toggle Despesa/Receita, garante que a categoria selecionada
+  // pertence ao tipo atual; senão, escolhe a primeira do tipo novo.
+  useEffect(() => {
+    if (!visible) return;
+    const stillValid = filteredCategories.some((c) => c.displayName === category);
+    if (!stillValid) {
+      setCategory(filteredCategories[0]?.displayName ?? '');
+    }
+  }, [type, visible]);
 
   async function handleSave() {
     const parsedValue = parseFloat(value.replace(',', '.'));
@@ -88,7 +104,7 @@ export function TransactionModal({ visible, transaction, onClose }: Props) {
 
   async function handleAddCategory() {
     if (newCategoryName.trim()) {
-      await addCategory(newCategoryName.trim());
+      await addCategory(newCategoryName.trim(), type === 'income');
       setCategory(newCategoryName.trim());
       setNewCategoryName('');
       setShowNewCategory(false);
@@ -162,27 +178,39 @@ export function TransactionModal({ visible, transaction, onClose }: Props) {
               Categoria
             </ThemedText>
             <TouchableOpacity
-              style={[styles.input, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
+              style={[styles.input, styles.categoryTrigger, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
               onPress={() => setShowCategoryPicker(!showCategoryPicker)}
             >
+              {selectedCategory && (
+                <View style={[styles.catDot, { backgroundColor: selectedCategory.background }]} />
+              )}
               <ThemedText type="default">{category || 'Selecionar...'}</ThemedText>
             </TouchableOpacity>
 
             {showCategoryPicker && (
               <View style={[styles.categoryList, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
-                {categories.map((cat) => (
+                {filteredCategories.length === 0 && !showNewCategory && (
+                  <View style={styles.categoryItem}>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      Nenhuma categoria de {type === 'income' ? 'receita' : 'despesa'} ainda.
+                    </ThemedText>
+                  </View>
+                )}
+                {filteredCategories.map((cat) => (
                   <TouchableOpacity
-                    key={cat}
+                    key={cat.id}
                     style={[
                       styles.categoryItem,
-                      cat === category && { backgroundColor: theme.backgroundSelected },
+                      styles.categoryItemRow,
+                      cat.displayName === category && { backgroundColor: theme.backgroundSelected },
                     ]}
                     onPress={() => {
-                      setCategory(cat);
+                      setCategory(cat.displayName);
                       setShowCategoryPicker(false);
                     }}
                   >
-                    <ThemedText type="default">{cat}</ThemedText>
+                    <View style={[styles.catDot, { backgroundColor: cat.background }]} />
+                    <ThemedText type="default">{cat.displayName}</ThemedText>
                   </TouchableOpacity>
                 ))}
                 {!showNewCategory ? (
@@ -300,6 +328,21 @@ const styles = StyleSheet.create({
     padding: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128,128,128,0.2)',
+  },
+  categoryItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  categoryTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  catDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   addCatText: {
     color: '#208AEF',

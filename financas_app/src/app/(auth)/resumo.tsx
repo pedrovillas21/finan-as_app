@@ -12,17 +12,15 @@ function formatCurrency(value: number) {
 }
 
 export default function ResumoScreen() {
-  const { transactions } = useFinance();
+  const { transactions, setPeriod } = useFinance();
   const theme = useTheme();
 
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
   const [year, setYear] = useState(today.getFullYear());
 
-  const filtered = transactions.filter((t) => {
-    const d = new Date(t.date);
-    return d.getMonth() === month && d.getFullYear() === year;
-  });
+  // transactions já vem filtrado do back-end via ?month=&year=
+  const filtered = transactions;
 
   const income = filtered
     .filter((t) => t.type === 'income')
@@ -59,6 +57,7 @@ export default function ResumoScreen() {
           onChange={(m, y) => {
             setMonth(m);
             setYear(y);
+            setPeriod(m, y);
           }}
         />
 

@@ -9,6 +9,7 @@ import { Transaction, useFinance } from '@/context/FinanceContext';
 import { MonthYearFilter } from '@/components/MonthYearFilter';
 import { TransactionCard } from '@/components/TransactionCard';
 import { TransactionModal } from '@/components/TransactionModal';
+import { CategoryPieChart, PieSlice } from '@/components/CategoryPieChart';
 
 function formatCurrency(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -16,7 +17,7 @@ function formatCurrency(value: number) {
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
-  const { transactions } = useFinance();
+  const { transactions, setPeriod } = useFinance();
   const theme = useTheme();
 
   const today = new Date();
@@ -25,10 +26,8 @@ export default function HomeScreen() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const filtered = transactions.filter((t) => {
-    const d = new Date(t.date);
-    return d.getMonth() === month && d.getFullYear() === year;
-  });
+  // transactions já vem filtrado do back-end via ?month=&year=
+  const filtered = transactions;
 
   const income = filtered
     .filter((t) => t.type === 'income')
@@ -38,6 +37,25 @@ export default function HomeScreen() {
     .reduce((sum, t) => sum + t.value, 0);
   const balance = income - expense;
   const balanceColor = balance >= 0 ? '#fff' : '#FFEAA7';
+
+  const expensesByCategory = filtered
+    .filter((t) => t.type === 'expense')
+    .reduce<Record<string, { amount: number; background: string }>>((acc, t) => {
+      if (!acc[t.category]) {
+        acc[t.category] = { amount: 0, background: t.categoryBackground };
+      }
+      acc[t.category].amount += t.value;
+      return acc;
+    }, {});
+
+  const pieSlices: PieSlice[] = Object.entries(expensesByCategory)
+    .sort((a, b) => b[1].amount - a[1].amount)
+    .map(([cat, { amount, background }]) => ({
+      key: cat,
+      label: cat,
+      value: amount,
+      color: background,
+    }));
 
   function openAdd() {
     setSelectedTransaction(null);
@@ -99,6 +117,40 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Pie chart: despesas por categoria */}
+        {pieSlices.length > 0 && (
+          <View style={[styles.pieCard, { backgroundColor: theme.backgroundElement }]}>
+            <CategoryPieChart
+              slices={pieSlices}
+              size={140}
+              centerLabel="Despesas"
+              centerValue={formatCurrency(expense)}
+            />
+            <View style={styles.legend}>
+              <ThemedText type="smallBold" style={styles.legendTitle}>
+                Por categoria
+              </ThemedText>
+              {pieSlices.slice(0, 4).map((s) => {
+                const pct = expense > 0 ? Math.round((s.value / expense) * 100) : 0;
+                return (
+                  <View key={s.key} style={styles.legendRow}>
+                    <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                    <ThemedText type="small" style={styles.legendLabel} numberOfLines={1}>
+                      {s.label}
+                    </ThemedText>
+                    <ThemedText type="smallBold">{pct}%</ThemedText>
+                  </View>
+                );
+              })}
+              {pieSlices.length > 4 && (
+                <ThemedText type="small" themeColor="textSecondary">
+                  +{pieSlices.length - 4} outras
+                </ThemedText>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Month/Year filter */}
         <MonthYearFilter
           month={month}
@@ -106,6 +158,7 @@ export default function HomeScreen() {
           onChange={(m, y) => {
             setMonth(m);
             setYear(y);
+            setPeriod(m, y);
           }}
         />
 
@@ -188,6 +241,35 @@ const styles = StyleSheet.create({
   },
   balanceAmountText: {
     color: '#fff',
+  },
+  pieCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 16,
+    gap: 12,
+  },
+  legend: {
+    flex: 1,
+    gap: 6,
+  },
+  legendTitle: {
+    marginBottom: 2,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendLabel: {
+    flex: 1,
   },
   listContent: {
     paddingBottom: 96,
